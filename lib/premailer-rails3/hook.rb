@@ -14,6 +14,8 @@ module PremailerRails
       if html_body
         premailer = Premailer.new(html_body)
         charset   = message.charset
+        
+        message.html_part = nil # otherwise we get two text/html parts into the mail
 
         message.html_part do
           content_type "text/html; charset=#{charset}"
