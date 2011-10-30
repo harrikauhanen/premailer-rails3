@@ -6,7 +6,8 @@ module PremailerRails
       load_html(html)
       options = {
         :with_html_string => true,
-        :adapter          => :hpricot
+        :adapter          => :hpricot, # Nokogiri will not work <-- undefined method `at_css'
+        :line_length      => 80
       }.merge css_options
       super(html, options)
     end
@@ -14,6 +15,22 @@ module PremailerRails
     def load_html(string)
       # @doc is also used by ::Premailer
       @doc ||= Hpricot(string)
+    end
+
+    def to_plain_text
+      html_src = ''
+      begin
+        html_src = @doc.at("body").inner_html
+      rescue; end
+
+      html_src = @doc.to_html unless html_src and not html_src.empty?
+      
+      # These are the lines why we are patching this 'to_plain_text' method
+      plain_doc = Nokogiri::HTML(html_src)
+      plain_doc.search('.//style').remove    # I think this is a premailer bug. Styles that are "unmergable" are added to the end but NOT removed in the text version
+      plain_doc.search('.//img').remove      # Well, we just don't want images converted
+      
+      convert_to_text(plain_doc.to_html, @options[:line_length], @html_encoding)
     end
 
     protected
